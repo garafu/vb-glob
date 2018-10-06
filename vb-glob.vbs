@@ -7,14 +7,14 @@
 
 Option Explicit
 
-Public m_strPathDelimiter As String             ' Windows向けパス制御文字の定義
+Public m_strPathDelimiter As String             ' Path control string for Windows.
 
 Public m_fso As Object                          ' FileSystemObject
 
-Public m_rgxIsIncludeControlChar As Object      ' Glob制御文字を含んでいるかどうかを判定する正規表現
+Public m_rgxIsIncludeControlChar As Object      ' Regular expression of Glob control string.
 
 '
-' コンストラクタ
+' Constructor.
 '
 Private Sub Class_Initialize()
     m_strPathDelimiter = "\"
@@ -23,7 +23,7 @@ Private Sub Class_Initialize()
 End Sub
 
 '
-' デストラクタ
+' Destructor.
 '
 Private Sub Class_Terminate()
     Set m_rgxIsIncludeControlChar = Nothing
@@ -31,7 +31,7 @@ Private Sub Class_Terminate()
 End Sub
 
 '
-' カレントディレクトリの絶対パスを取得する
+' Get current directory acsolute path.
 '
 Private Function GetCurrentDirectory()
   If ThisWorkbook Is Nothing Then
@@ -43,7 +43,7 @@ Private Function GetCurrentDirectory()
 End Function
 
 '
-' 正規表現を生成する
+' Create regular expression object.
 '
 Private Function RegExp(Pattern As String, Optional IsIgnoreCase As Boolean = True, Optional IsGlobal As Boolean = True)
     Dim objRegExp: Set objRegExp = CreateObject("VBScript.RegExp")
@@ -54,7 +54,7 @@ Private Function RegExp(Pattern As String, Optional IsIgnoreCase As Boolean = Tr
 End Function
 
 '
-' Globを正規表現に変換する
+' Convert Glob string to Regular expression string.
 '
 Private Function ConvertGlob2RegExp(Url)
     Dim text: text = Url
@@ -65,7 +65,7 @@ Private Function ConvertGlob2RegExp(Url)
 End Function
 
 '
-' 引数をパスとして結合する
+' Conbine specified strings as a path string.
 '
 Private Function PathJoin(a, b)
     If IsEmpty(a) Then
@@ -76,7 +76,7 @@ Private Function PathJoin(a, b)
 End Function
 
 '
-' 配列の一部を切り取る
+' Slice specified array.
 '
 Private Function Slice(List, StartIndex, Length)
     Dim aList(), i, n: n = 0
@@ -92,7 +92,7 @@ End Function
 
 
 '
-' フォルダを探索する
+' Search subdirectories.
 '
 Private Function SearchDirs(BaseDir, Match, RestPathList, Result)
     Dim folderCurrent, folderChild, blnNextMatchIsFile, strCrrtMatch, strNextMatch, rgxCrrtMatch, rgxNextMatch
@@ -100,17 +100,17 @@ Private Function SearchDirs(BaseDir, Match, RestPathList, Result)
     
     If Not Me.m_fso.FolderExists(BaseDir) Then Exit Function
     
-    Set folderCurrent = Me.m_fso.GetFolder(BaseDir)             ' フォルダを取得
-    strCrrtMatch = Match                                        ' 現在のマッチング文字列
-    strNextMatch = RestPathList(0)                              ' 次のマッチング文字列
-    blnNextMatchIsFile = Not CBool(UBound(RestPathList))        ' 次のマッチングがファイルかどうか
+    Set folderCurrent = Me.m_fso.GetFolder(BaseDir)             ' Current folder object.
+    strCrrtMatch = Match                                        ' Current matching string.
+    strNextMatch = RestPathList(0)                              ' Next matching string
+    blnNextMatchIsFile = Not CBool(UBound(RestPathList))        ' Whether the next matching is file or not.
     
-    If Match = "**" Then        ' ▼▼▼ 0個以上のディレクトリ ▼▼▼
-        If Not blnNextMatchIsFile Then  ' 次がディレクトリ検索
+    If Match = "**" Then        ' ****** 0 or more directories ******
+        If Not blnNextMatchIsFile Then
             For Each folderChild In folderCurrent.SubFolders
                 Set rgxNextMatch = RegExp(ConvertGlob2RegExp(strNextMatch))
                 strBaseDir2 = PathJoin(BaseDir, folderChild.name)
-                If rgxNextMatch.Test(folderChild.name) Then ' 次の検索条件と一致する場合は検索を進める
+                If rgxNextMatch.Test(folderChild.name) Then
                     strMatch2 = RestPathList(1)
                     If 1 < UBound(RestPathList) Then
                         astrRestPathList2 = Slice(RestPathList, 2, UBound(RestPathList) - 1)
@@ -118,11 +118,11 @@ Private Function SearchDirs(BaseDir, Match, RestPathList, Result)
                     Else
                         SearchFiles strBaseDir2, strMatch2, Result
                     End If
-                Else                                        ' 次の検索条件と一致しない場合は単純に掘り下げる
+                Else
                     SearchDirs strBaseDir2, Match, RestPathList, Result
                 End If
             Next
-        Else                            ' 次がファイル検索
+        Else
             For Each folderChild In folderCurrent.SubFolders
                 strBaseDir2 = PathJoin(BaseDir, folderChild.name)
                 SearchDirs strBaseDir2, strCrrtMatch, RestPathList, Result
@@ -130,24 +130,22 @@ Private Function SearchDirs(BaseDir, Match, RestPathList, Result)
             
             SearchFiles BaseDir, strNextMatch, Result
         End If
-    ElseIf Match = "*" Then     ' ▼▼▼ 0 または 1個のディレクトリ ▼▼▼
-        If Not blnNextMatchIsFile Then  ' 次がディレクトリ検索
+    ElseIf Match = "*" Then     ' ****** 0 or 1 directory ******
+        If Not blnNextMatchIsFile Then
             Set rgxNextMatch = RegExp(ConvertGlob2RegExp(strNextMatch))
             For Each folderChild In folderCurrent.SubFolders
                 If rgxNextMatch.Test(folderChild.name) Then
                     strBaseDir2 = PathJoin(BaseDir, folderChild.name)
                     strMatch2 = RestPathList(1)
                     If 1 < UBound(RestPathList) Then
-                        ' 孫がフォルダ
                         astrRestPathList2 = Slice(RestPathList, 2, UBound(RestPathList) - 1)
                         SearchDirs strBaseDir2, strMatch2, astrRestPathList2, Result
                     Else
-                        ' 孫がファイル
                         SearchFiles strBaseDir2, strMatch2, Result
                     End If
                 End If
             Next
-        Else                            ' 次がファイル検索
+        Else
             For Each folderChild In folderCurrent.SubFolders
                 strBaseDir2 = PathJoin(BaseDir, folderChild.name)
                 SearchFiles strBaseDir2, strNextMatch, Result
@@ -156,8 +154,8 @@ Private Function SearchDirs(BaseDir, Match, RestPathList, Result)
             SearchFiles BaseDir, strNextMatch, Result
         End If
         
-    Else                        ' ▼▼▼ 指定されたディレクトリ ▼▼▼
-        ' 検索条件を作成
+    Else                        ' ****** Specified directory ******
+        ' Create regular expression.
         Set rgxCrrtMatch = RegExp(ConvertGlob2RegExp(Match))
         
         For Each folderChild In folderCurrent.SubFolders
@@ -175,15 +173,15 @@ End Function
 
 
 '
-' ファイルを探す
+' Search files.
 '
 Private Function SearchFiles(BaseDir, Match, Result)
     Dim rgxMatch, folder, file
     
-    ' フォルダを取得
+    ' Get folder object.
     Set folder = Me.m_fso.GetFolder(BaseDir)
     
-    ' サブフォルダの検索条件を作成
+    ' Create search condition for sub folder.
     Set rgxMatch = RegExp(ConvertGlob2RegExp(Match))
     
     For Each file In folder.Files
@@ -194,24 +192,24 @@ Private Function SearchFiles(BaseDir, Match, Result)
 End Function
 
 '
-' 指定された Glob パスに合致するファイルの絶対パス一覧を取得します。
+' Get absolute path of files which specified by Glob string.
 '
 Public Function Search(Path As String)
     Dim i, strBaseDir, astrResult, astrPath, strPath, rgpFile
     
-    ' 戻り値用の配列
+    ' Array for return value.
     Set astrResult = CreateObject("System.Collections.ArrayList")
 
-    ' 相対パスと絶対パスを判別し、相対パスは絶対パスへ変換
+    ' Convert absolute path.
     If "." = Left(Path, 1) Then
         strPath = PathJoin(GetCurrentDirectory, Path)
     End If
     strPath = Me.m_fso.GetAbsolutePathName(strPath)
     
-    ' パスを分解
+    ' Split path string by "\".
     astrPath = Split(strPath, m_strPathDelimiter)
 
-    ' Glob表現を含まないパスまで移動
+    ' Move to the path which is not includes Glob expression.
     For i = LBound(astrPath) To UBound(astrPath) - 1
         If m_rgxIsIncludeControlChar.Test(astrPath(i)) Then
             Exit For
@@ -220,7 +218,7 @@ Public Function Search(Path As String)
         End If
     Next
     
-    ' 次の検索条件がディレクトリかどうか
+    ' Whether the next search string is for directory or file.
     If i < UBound(astrPath) Then
         SearchDirs strBaseDir, astrPath(i), Slice(astrPath, i + 1, UBound(astrPath) - i), astrResult
     Else
