@@ -1,3 +1,10 @@
+'  VB-Glob
+'  
+'  Copyright (c) 2018 Akinari Tsugo
+'  
+'  This software is released under the MIT License.
+'  http://opensource.org/licenses/mit-license.php
+
 Option Explicit
 
 Public m_strPathDelimiter As String             ' Windows向けパス制御文字の定義
