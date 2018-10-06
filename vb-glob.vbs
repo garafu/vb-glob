@@ -203,6 +203,8 @@ Public Function Search(Path As String)
     ' Convert absolute path.
     If "." = Left(Path, 1) Then
         strPath = PathJoin(GetCurrentDirectory, Path)
+    Else
+        strPath = Path
     End If
     strPath = Me.m_fso.GetAbsolutePathName(strPath)
     
